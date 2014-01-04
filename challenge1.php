@@ -1,4 +1,5 @@
 <?php
+// Initial setup: https://github.com/rackspace/php-opencloud/blob/master/docs/getting-started.md
 
 // Require Autoload for composer tool to include Rackspace API
 require 'vendor/autoload.php';
