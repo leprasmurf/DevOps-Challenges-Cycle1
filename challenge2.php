@@ -23,6 +23,7 @@ $build_flavor = null;
 $number_of_instances = 1;
 $max_instances = 3;
 $basename = null;
+$servers = array();
 $valid = false;
 $handle = fopen("php://stdin", "r");
 
@@ -168,11 +169,16 @@ for($i=1; $i <= $number_of_instances; $i++) {
 			'image'		=> $build_image,
 			'flavor'	=> $build_flavor,
 			'networks'	=> array(
-				$compute->network(Network::RAX_PUBLIC),
-				$compute->network(Network::RAX_PRIVATE)
-			)
+						$compute->network(Network::RAX_PUBLIC),
+						$compute->network(Network::RAX_PRIVATE)
+					   ),
+			'keypair'	=> array(
+						'name'		=> 'root',
+						'publicKey'	=> 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA7m5peUIH9fjs81bI3jaj3Hbyi/FQC6RGHfp9YAOq1o2HoVBkb5ewMPZc3A+V2WvIuLmH5I6Epv3vKVhNmOXPiA0c/4AZTTz0QtHULbOINqa4bRw7KrnYD5U0Fr2MY9qaKuBqtk7I2dHWy0uvZW9l9bAmEj/WY4N9JwwnngQf48xqkldCKqf77BrGoTlVRekAQsxqOBb5ACJRzVLGuPL34P0AKNT0x2JpYFqiQQwu6n/XcpKQf+qMhtGkQ2UPofD5ml6pwSIUWAcMTUljOxopNsE4Prs/j4Adf6bOla2M1Bf01hXEovqqZ2PeO+/Y4O0rX9e//mRDeuN9wGSHLnqABQ== leprasmurf@gmail.com'
+					   )
 		));;
-		printf("The request to build %s%d has been submitted.  The root password is %s\n", $basename, $i, $server->adminPass);
+		array_push($servers, $server->id);
+		printf("The request to build %s%d has been submitted (ID: %s).  The root password is %s\n", $basename, $i, $server->id, $server->adminPass);
 	} catch (\Guzzle\Http\Exception\BadResponseException $e) {
 		$responseBody	= (string) $e->getResponse()->getBody();
 		$statusCode	= $e->getResponse()->getStatusCode();
@@ -180,9 +186,12 @@ for($i=1; $i <= $number_of_instances; $i++) {
 
 		echo sprintf('Status: %s\nBody: %s\nHeaders: %s', $statusCode, $responseBody, implode(', ', $headers));
 	}
+
+//	printf("Sleeping for 5 minutes.\n");
+//	sleep(300);
 }
 
-/*
+
 // Callback function to monitor build progress
 $callback = function($server) {
 	if(!empty($server->error)) {
@@ -200,17 +209,21 @@ $callback = function($server) {
 	}
 };
 
+$output = print_r($server, true);
+file_put_contents("./output.log", $output);
+
 // Loop to check on build progress
 $server->waitFor(ServerState::ACTIVE, 600, $callback);
 
 echo "\n";
 
-printf("The new server has been created (ID: %s).\nThe Root password is %s\n", $server->id, $server->adminPass);
+//printf("The new server has been created (ID: %s).\nThe Root password is %s\n", $server->id, $server->adminPass);
 
-sleep(10);
+//sleep(10);
 
 printf("Deleting server %s.\n", $server->id);
 
+/*
 $server->Delete();
 */
 ?>
