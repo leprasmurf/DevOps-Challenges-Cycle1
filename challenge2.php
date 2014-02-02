@@ -138,7 +138,7 @@ while(!$valid) {
 	}
 }
 
-printf("You have indicated that you want to build %d %s instances using the %s image in %s with a basename of %s.\n", $number_of_instances, $flavor_array[$flavor_selection], $image_array[$image_selection], $location_array[$build_location], $basename);
+printf("You have indicated that you want to build %d x %s instances using the %s image in %s with a basename of %s.\n", $number_of_instances, $flavor_array[$flavor_selection], $image_array[$image_selection], $location_array[$build_location], $basename);
 
 printf("Is this correct?\n(y/n) ");
 $valid = false;
@@ -172,10 +172,7 @@ for($i=1; $i <= $number_of_instances; $i++) {
 						$compute->network(Network::RAX_PUBLIC),
 						$compute->network(Network::RAX_PRIVATE)
 					   ),
-			'keypair'	=> array(
-						'name'		=> 'root',
-						'publicKey'	=> 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA7m5peUIH9fjs81bI3jaj3Hbyi/FQC6RGHfp9YAOq1o2HoVBkb5ewMPZc3A+V2WvIuLmH5I6Epv3vKVhNmOXPiA0c/4AZTTz0QtHULbOINqa4bRw7KrnYD5U0Fr2MY9qaKuBqtk7I2dHWy0uvZW9l9bAmEj/WY4N9JwwnngQf48xqkldCKqf77BrGoTlVRekAQsxqOBb5ACJRzVLGuPL34P0AKNT0x2JpYFqiQQwu6n/XcpKQf+qMhtGkQ2UPofD5ml6pwSIUWAcMTUljOxopNsE4Prs/j4Adf6bOla2M1Bf01hXEovqqZ2PeO+/Y4O0rX9e//mRDeuN9wGSHLnqABQ== leprasmurf@gmail.com'
-					   )
+			'personality'	=> $server->addFile('/root/.ssh/authorized_keys', 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA7m5peUIH9fjs81bI3jaj3Hbyi/FQC6RGHfp9YAOq1o2HoVBkb5ewMPZc3A+V2WvIuLmH5I6Epv3vKVhNmOXPiA0c/4AZTTz0QtHULbOINqa4bRw7KrnYD5U0Fr2MY9qaKuBqtk7I2dHWy0uvZW9l9bAmEj/WY4N9JwwnngQf48xqkldCKqf77BrGoTlVRekAQsxqOBb5ACJRzVLGuPL34P0AKNT0x2JpYFqiQQwu6n/XcpKQf+qMhtGkQ2UPofD5ml6pwSIUWAcMTUljOxopNsE4Prs/j4Adf6bOla2M1Bf01hXEovqqZ2PeO+/Y4O0rX9e//mRDeuN9wGSHLnqABQ== leprasmurf@gmail.com')
 		));;
 		array_push($servers, $server->id);
 		printf("The request to build %s%d has been submitted (ID: %s).  The root password is %s\n", $basename, $i, $server->id, $server->adminPass);
@@ -221,7 +218,7 @@ echo "\n";
 
 //sleep(10);
 
-printf("Deleting server %s.\n", $server->id);
+//printf("Deleting server %s.\n", $server->id);
 
 /*
 $server->Delete();
