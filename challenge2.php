@@ -26,7 +26,9 @@ $basename = null;
 $servers = array();
 $valid = false;
 $handle = fopen("php://stdin", "r");
+$ssh_key = "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA7m5peUIH9fjs81bI3jaj3Hbyi/FQC6RGHfp9YAOq1o2HoVBkb5ewMPZc3A+V2WvIuLmH5I6Epv3vKVhNmOXPiA0c/4AZTTz0QtHULbOINqa4bRw7KrnYD5U0Fr2MY9qaKuBqtk7I2dHWy0uvZW9l9bAmEj/WY4N9JwwnngQf48xqkldCKqf77BrGoTlVRekAQsxqOBb5ACJRzVLGuPL34P0AKNT0x2JpYFqiQQwu6n/XcpKQf+qMhtGkQ2UPofD5ml6pwSIUWAcMTUljOxopNsE4Prs/j4Adf6bOla2M1Bf01hXEovqqZ2PeO+/Y4O0rX9e//mRDeuN9wGSHLnqABQ== leprasmurf@gmail.com";
 
+// Helper function to get numeric input up to $upper_limit
 function get_numeric_input($upper_limit) {
 	$valid = false;
 	$handle = fopen("php://stdin", "r");
@@ -45,6 +47,7 @@ function get_numeric_input($upper_limit) {
 	return $input;
 }
 
+// Helper function to display a list (array) and highlight the $default
 function print_list($array_to_display, $default) {
 	foreach($array_to_display as $key => $item) {
 		if($key == $default) {
@@ -120,9 +123,12 @@ foreach($flavors as $flavor) {
 		break;
 	}
 }
+
+// Request user input for the number of instances to create
 printf("How many servers would you like to create? (0 - 3)\n");
 $number_of_instances = get_numeric_input($max_instances+1);
 
+// Request user input for the base name for servers (e.g., bob -> bob1, bob2, bob3)
 printf("Please enter a base name for your new servers.\n");
 $valid = false;
 while(!$valid) {
@@ -131,13 +137,13 @@ while(!$valid) {
 
 	if(($input != '') && ($input !== null)) {
 		$basename = $input;
-//		printf("You selected the name %s.\n", $basename);
 		$valid = true;
 	} else {
 		printf("Invalid input: %s\n", trim($line));
 	}
 }
 
+// Final verification before running
 printf("You have indicated that you want to build %d x %s instances using the %s image in %s with a basename of %s.\n", $number_of_instances, $flavor_array[$flavor_selection], $image_array[$image_selection], $location_array[$build_location], $basename);
 
 printf("Is this correct?\n(y/n) ");
@@ -159,11 +165,12 @@ while(!$valid) {
 // Instantiate the compute server class
 $server = $compute->server();
 
+// For loop to create $number_of_instances servers
 for($i=1; $i <= $number_of_instances; $i++) {
 	try {
 		$tmp_name = "$basename$i";
 
-		// Create the compute instance
+		// Create the compute instance with the relevant variables
 		$response = $server->create(array(
 			'name'		=> $tmp_name,
 			'image'		=> $build_image,
@@ -172,10 +179,11 @@ for($i=1; $i <= $number_of_instances; $i++) {
 						$compute->network(Network::RAX_PUBLIC),
 						$compute->network(Network::RAX_PRIVATE)
 					   ),
-			'personality'	=> $server->addFile('/root/.ssh/authorized_keys', 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA7m5peUIH9fjs81bI3jaj3Hbyi/FQC6RGHfp9YAOq1o2HoVBkb5ewMPZc3A+V2WvIuLmH5I6Epv3vKVhNmOXPiA0c/4AZTTz0QtHULbOINqa4bRw7KrnYD5U0Fr2MY9qaKuBqtk7I2dHWy0uvZW9l9bAmEj/WY4N9JwwnngQf48xqkldCKqf77BrGoTlVRekAQsxqOBb5ACJRzVLGuPL34P0AKNT0x2JpYFqiQQwu6n/XcpKQf+qMhtGkQ2UPofD5ml6pwSIUWAcMTUljOxopNsE4Prs/j4Adf6bOla2M1Bf01hXEovqqZ2PeO+/Y4O0rX9e//mRDeuN9wGSHLnqABQ== leprasmurf@gmail.com')
+			'personality'	=> $server->addFile('/root/.ssh/authorized_keys', "$ssh_key")
 		));;
-		array_push($servers, $server->id);
-		printf("The request to build %s%d has been submitted (ID: %s).  The root password is %s\n", $basename, $i, $server->id, $server->adminPass);
+		array_push($servers, clone $server);
+		//printf("The request to build %s%d has been submitted (ID: %s).  The root password is %s\n", $basename, $i, $server->id, $server->adminPass);
+		printf("%s%d (ID: %s) is building.\n", $basename, $i, $server->id, $server->adminPass);
 	} catch (\Guzzle\Http\Exception\BadResponseException $e) {
 		$responseBody	= (string) $e->getResponse()->getBody();
 		$statusCode	= $e->getResponse()->getStatusCode();
@@ -183,44 +191,47 @@ for($i=1; $i <= $number_of_instances; $i++) {
 
 		echo sprintf('Status: %s\nBody: %s\nHeaders: %s', $statusCode, $responseBody, implode(', ', $headers));
 	}
-
-//	printf("Sleeping for 5 minutes.\n");
-//	sleep(300);
 }
 
+// Run until all instances are done building
+while($completed != $number_of_instances) {
+	$completed = 0;
 
-// Callback function to monitor build progress
-$callback = function($server) {
-	if(!empty($server->error)) {
-		var_dump($server->error);
-		exit;
-	} else {
-		echo "\033[80D";
-		echo "\033[K";
-		echo sprintf(
-				"Waiting on %s/%-12s %4s%%",
-				$server->name(),
-				$server->status(),
-				isset($server->progress)? $server->progress : 0
-			    );
+	// Check each server and print status line
+	for($j = 0; $j < $number_of_instances; $j++) {
+		// Refresh server state to check
+		$servers[$j]->refresh();
+
+		// If done building, increment completed variable
+		if($servers[$j]->status() == ServerState::ACTIVE) {
+			$completed++;
+		}
+
+		// Check server build for errors
+		if(!empty($servers[$j]->error)) {
+			var_dump($servers[$j]->error);
+			exit;
+		} else {
+			printf("%s is in state \"%s\" %10s%%\n", $servers[$j]->name(), $servers[$j]->status(), isset($servers[$j]->progress)? $servers[$j]->progress : 0);
+		}
 	}
-};
 
-$output = print_r($server, true);
-file_put_contents("./output.log", $output);
+	sleep(2);
 
-// Loop to check on build progress
-$server->waitFor(ServerState::ACTIVE, 600, $callback);
+	// move console up $number_of_instances lines
+	for($k = 1; $k <= $number_of_instances; $k++) {
+		// Move cursor left 80 spaces
+		echo "\033[80D";
+//		// Clear to end of line
+//		echo "\033[K";
+		// Move up a line
+		echo "\033[A";
+	}
+}
 
-echo "\n";
+for($j = 0; $j < $number_of_instances; $j++) {
+	printf("%s%d (ID: %s) build is complete.  IP: %s; Root Password %s\n", $basename, ($j + 1), $servers[$j]->id, $servers[$j]->ip(), $servers[$j]->adminPass);
+}
 
-//printf("The new server has been created (ID: %s).\nThe Root password is %s\n", $server->id, $server->adminPass);
-
-//sleep(10);
-
-//printf("Deleting server %s.\n", $server->id);
-
-/*
-$server->Delete();
-*/
+printf("End of Script\n");
 ?>
