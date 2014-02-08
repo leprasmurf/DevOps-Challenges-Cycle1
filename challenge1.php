@@ -1,4 +1,7 @@
 <?php
+/*
+Challenge 1: Write a script that builds a 512MB Cloud Server and returns the root password and IP address for the server. This must be done in PHP with php-opencloud
+*/
 // Initial setup: https://github.com/rackspace/php-opencloud/blob/master/docs/getting-started.md
 
 // Require Autoload for composer tool to include Rackspace API
