@@ -6,6 +6,8 @@ Challenge 1: Write a script that builds a 512MB Cloud Server and returns the roo
 
 // Require Autoload for composer tool to include Rackspace API
 require 'vendor/autoload.php';
+// Grab Username and API key
+require '/home/leprasmurf/.rackspace_api.php';
 
 // Load libraries from API
 use OpenCloud\Rackspace;
@@ -14,8 +16,8 @@ use OpenCloud\Compute\Constants\ServerState;
 
 // Setup the client with the appropriate credentials
 $client = new Rackspace(Rackspace::US_IDENTITY_ENDPOINT, array (
-	'username'	=> 'tforbes',
-	'apiKey'	=> '1b0ef2ec2fdc6d657291430578a488a7'
+	'username'	=> $username,
+	'apiKey'	=> $apikey
 ));
 
 // Create the compute object, specify the datacenter to work within
@@ -89,9 +91,12 @@ echo "\n";
 
 printf("The new server has been created (ID: %s).\nThe Root password is %s\n", $server->id, $server->adminPass);
 
+/*
+// Delete command added for script debugging
 sleep(10);
 
 printf("Deleting server %s.\n", $server->id);
 
 $server->Delete();
+*/
 ?>

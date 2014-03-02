@@ -7,6 +7,8 @@ Challenge 2: Write a script that builds anywhere from 1 to 3 512MB cloud servers
 
 // Require Autoload for composer tool to include Rackspace API
 require 'vendor/autoload.php';
+// Grab Username and API key
+require '/home/leprasmurf/.rackspace_api.php';
 
 // Load libraries from API
 use OpenCloud\Rackspace;
@@ -64,8 +66,8 @@ function print_list($array_to_display, $default) {
 
 // Setup the client with the appropriate credentials
 $client = new Rackspace(Rackspace::US_IDENTITY_ENDPOINT, array (
-	'username'	=> 'tforbes',
-	'apiKey'	=> '1b0ef2ec2fdc6d657291430578a488a7'
+	'username'	=> $username,
+	'apiKey'	=> $apikey
 ));
 
 // Request user input for the datacenter to buid in
@@ -223,10 +225,10 @@ while($completed != $number_of_instances) {
 
 	// move console up $number_of_instances lines
 	for($k = 1; $k <= $number_of_instances; $k++) {
+		// ANSI Escape sequences
+		// http://ascii-table.com/ansi-escape-sequences.php
 		// Move cursor left 80 spaces
 		echo "\033[80D";
-//		// Clear to end of line
-//		echo "\033[K";
 		// Move up a line
 		echo "\033[A";
 	}

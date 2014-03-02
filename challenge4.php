@@ -7,8 +7,16 @@ Challenge 4: Write a script that creates a Cloud Files Container. If the contain
 
 // Require Autoload for composer tool to include Rackspace API
 require 'vendor/autoload.php';
+// Grab Username and API key
+require '/home/leprasmurf/.rackspace_api.php';
 
 // Load libraries from API
 use OpenCloud\Rackspace;
+
+// Setup the client with the appropriate credentials
+$client = new Rackspace(Rackspace::US_IDENTITY_ENDPOINT, array (
+        'username'      => $username,
+        'apiKey'        => $apikey
+));
 
 ?>
